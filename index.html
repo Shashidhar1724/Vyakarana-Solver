@@ -264,7 +264,16 @@
       <div class="card">
         <h2 id="solverTitle" style="margin-top:0; color:var(--primary); font-size: 1.3rem;"></h2>
         <label for="wordInput" id="inputLabel">ಪದವನ್ನು ನಮೂದಿಸಿ:</label>
-        <input type="text" id="wordInput" list="wordSuggestions" placeholder="..." />
+         <!-- Input with Camera Scan Button -->
+   	<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+      <input type="text" id="wordInput" list="wordSuggestions" placeholder="..." style="margin-bottom: 0; flex: 1;" />
+      
+      <!-- Camera Button -->
+      <button type="button" onclick="openLiveCamera()" title="Scan the word" style="background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 14px; font-size: 1.3rem; cursor: pointer;">
+        📷
+      </button>
+    </div>
+
         <datalist id="wordSuggestions"></datalist>
 
         <button id="solveBtn" class="action-btn" onclick="executeSolver()">ವಿಶ್ಲೇಷಿಸಿ (Solve)</button>
@@ -503,5 +512,38 @@
     });
   }
 </script>
+  <!-- Live Camera Viewfinder Modal -->
+<div id="cameraModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;">
+  
+  <div style="width:100%; max-width:480px; background:#fff; border-radius:14px; overflow:hidden; display:flex; flex-direction:column; max-height:90vh;">
+    <!-- Modal Header -->
+    <div style="padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb;">
+      <h3 style="margin:0; font-size:1.05rem; color:#1f2937;">ಪುಸ್ತಕದ ಪದಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ (Select Word)</h3>
+      <button onclick="closeLiveCamera()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; line-height:1;">&times;</button>
+    </div>
+
+    <!-- Video Feed -->
+    <div style="position:relative; width:100%; height:260px; background:#000;">
+      <video id="liveVideo" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+      <canvas id="captureCanvas" style="display:none;"></canvas>
+    </div>
+
+    <!-- Action Bar -->
+    <div style="padding:10px 16px; text-align:center; background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+      <button id="detectBtn" onclick="detectWordsFromStream()" style="background:var(--primary); color:white; border:none; padding:8px 18px; border-radius:8px; font-weight:bold; cursor:pointer;">
+        🔍 ಪದಗಳನ್ನು ಗುರುತಿಸಿ (Detect Words)
+      </button>
+    </div>
+
+    <!-- Detected Word Badges -->
+    <div style="padding:14px; overflow-y:auto; flex:1;">
+      <p style="margin:0 0 8px 0; font-size:0.85rem; color:#6b7280;">ಪದವನ್ನು ಸ್ಪರ್ಶಿಸಿ (Tap a word to paste into search):</p>
+      <div id="wordChipsContainer" style="display:flex; flex-wrap:wrap; gap:8px;">
+        <span style="font-size:0.85rem; color:#9ca3af;">ಕ್ಯಾಮೆರಾವನ್ನು ಪುಸ್ತಕದತ್ತ ಹಿಡಿದು 'ಗುರುತಿಸಿ' ಕ್ಲಿಕ್ ಮಾಡಿ.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
