@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ವ್ಯಾಕರಣ ಪರಿಹಾರಕ - Vyakarana Solver</title>
+  
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#c2410c" />
+  <style>
+    :root {
+      --primary: #c2410c;
+      --primary-hover: #9a3412;
+      --bg: #fffbeb;
+      --card-bg: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Soft SVKMS Watermark */
+    .watermark {
+      position: fixed;
+      top: 70%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-20deg);
+      font-size: 9rem;
+      font-weight: 900;
+      color: rgba(194, 65, 12, 0.05);
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+      letter-spacing: 0.25rem;
+      white-space: nowrap;
+    }
+
+    .container {
+      max-width: 540px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    header h1 {
+      color: var(--primary);
+      margin: 0 0 6px 0;
+      font-size: 1.6rem;
+    }
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* Selection Grid */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .card-btn {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .card-btn:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+    .card-btn .icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .card-btn h2 {
+      margin: 0 0 4px 0;
+      font-size: 1.25rem;
+      color: var(--primary);
+    }
+    .card-btn p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 14px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: block;
+      margin-bottom: 6px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 1rem;
+      margin-bottom: 12px;
+    }
+    button.action-btn {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button.action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Results */
+    .result-box {
+      display: none;
+      background: #fdf2f8;
+      border: 1px solid #fbcfe8;
+      border-radius: 12px;
+      padding: 18px;
+      margin-top: 16px;
+    }
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .result-header h3 {
+      margin: 0;
+      color: #9d174d;
+      font-size: 1.1rem;
+    }
+    .badge {
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .badge-offline { background: #d1fae5; color: #065f46; }
+    .badge-online { background: #fef3c7; color: #92400e; }
+
+    .result-row {
+      margin-bottom: 12px;
+      border-bottom: 1px dashed #f9a8d4;
+      padding-bottom: 8px;
+    }
+    .result-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .result-row .item-label {
+      font-size: 0.8rem;
+      color: #6b7280;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .result-row .item-value {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #111827;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Watermark -->
+  <div class="watermark">S.V.K.M.S</div>
+
+  <div class="container">
+    <header>
+      <h1 id="appTitle">VYAKARANA SOLVER</h1>
+      <p id="appSubtitle">ಕನ್ನಡ • हिन्दी • संस्कृतम्</p>
+    </header>
+
+    <!-- 1. LANGUAGE SELECTION VIEW -->
+    <div id="langView" class="view active">
+      <div class="grid-3">
+        <div class="card-btn" onclick="selectLanguage('kannada')">
+          <span class="icon">🚩</span>
+          <h2>ಕನ್ನಡ (Kannada)</h2>
+          <p>ಕನ್ನಡ ವ್ಯಾಕರಣ (ಸಂಧಿ & ಸಮಾಸ)</p>
+        </div>
+        <div class="card-btn" onclick="selectLanguage('hindi')">
+          <span class="icon">🇮🇳</span>
+          <h2>हिन्दी (Hindi)</h2>
+          <p>हिन्दी व्याकरण (संधि और समास)</p>
+        </div>
+        <div class="card-btn" onclick="selectLanguage('sanskrit')">
+          <span class="icon">🕉️</span>
+          <h2>संस्कृतम् (Sanskrit)</h2>
+          <p>संस्कृत व्याकरणम् (सन्धिः एवं समासः)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. MODE SELECTION VIEW (SANDHI OR SAMASA) -->
+    <div id="modeView" class="view">
+      <button class="back-btn" onclick="showView('langView')">← ಭಾಷೆ ಬದಲಿಸಿ / Change Language</button>
+      <div class="grid-2">
+        <div class="card-btn" onclick="selectMode('sandhi')">
+          <span class="icon">🔗</span>
+          <h2 id="btnSandhiText">ಸಂಧಿ</h2>
+          <p id="btnSandhiDesc">ಸಂಧಿ ವಿಶ್ಲೇಷಣೆ</p>
+        </div>
+        <div class="card-btn" onclick="selectMode('samasa')">
+          <span class="icon">🧩</span>
+          <h2 id="btnSamasaText">ಸಮಾಸ</h2>
+          <p id="btnSamasaDesc">ಸಮಾಸ ವಿಗ್ರಹ</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. SOLVER WORKSPACE -->
+    <div id="solverView" class="view">
+      <button class="back-btn" onclick="showView('modeView')">← ಹಿಂದಕ್ಕೆ (Back)</button>
+
+      <div class="card">
+        <h2 id="solverTitle" style="margin-top:0; color:var(--primary); font-size: 1.3rem;"></h2>
+        <label for="wordInput" id="inputLabel">ಪದವನ್ನು ನಮೂದಿಸಿ:</label>
+
+        <!-- INPUT + CAMERA BUTTON WRAPPER -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: stretch;">
+          <input 
+            type="text" 
+            id="wordInput" 
+            list="wordSuggestions" 
+            placeholder="..." 
+            style="margin-bottom: 0; flex: 1; min-width: 0;" 
+          />
+          <button 
+            type="button" 
+            id="cameraBtn" 
+            onclick="openLiveCamera()" 
+            title="ಕ್ಯಾಮೆರಾದಿಂದ ಪದ ಗುರುತಿಸಿ" 
+            style="background: #ffffff; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 16px; font-size: 1.4rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08);"
+          >
+            📷
+          </button>
+        </div>
+
+        <datalist id="wordSuggestions"></datalist>
+
+        <button id="solveBtn" class="action-btn" onclick="executeSolver()">ವಿಶ್ಲೇಷಿಸಿ (Solve)</button>
+      </div>
+
+        <datalist id="wordSuggestions"></datalist>
+
+        <button id="solveBtn" class="action-btn" onclick="executeSolver()">ವಿಶ್ಲೇಷಿಸಿ (Solve)</button>
+      </div>
+
+      <div id="resultBox" class="result-box">
+        <div class="result-header">
+          <h3 id="resultTypeTitle">ಫಲಿತಾಂಶ / Result</h3>
+          <span id="sourceBadge" class="badge"></span>
+        </div>
+        
+        <div class="result-row">
+          <div class="item-label">ಪದ / Word</div>
+          <div class="item-value" id="resWord"></div>
+        </div>
+        
+        <div class="result-row">
+          <div class="item-label" id="resClassificationLabel">ವಿಭಾಗ</div>
+          <div class="item-value" id="resClassification"></div>
+        </div>
+
+        <div class="result-row">
+          <div class="item-label" id="resBreakupLabel">ವಿಭಾಗ ಬಿಡಿಸುವಿಕೆ</div>
+          <div class="item-value" id="resBreakup"></div>
+        </div>
+
+        <div class="result-row">
+          <div class="item-label">ವಿವರಣೆ / ಸೂತ್ರ</div>
+          <div class="item-value" id="resRule" style="font-size: 0.95rem; font-weight: normal;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="offline-data.js"></script>
+
+  <script>
+    let currentLang = 'kannada';
+    let currentMode = 'sandhi';
+    const BACKEND_URL = "https://language-backend.shashidhar1724.workers.dev";
+
+    let videoStream = null;
+
+async function openLiveCamera() {
+  const modal = document.getElementById("cameraModal");
+  const video = document.getElementById("liveVideo");
+  document.getElementById("wordChipsContainer").innerHTML = '<span style="font-size:0.85rem; color:#9ca3af;">ಕ್ಯಾಮೆರಾವನ್ನು ಪುಸ್ತಕದತ್ತ ಹಿಡಿದು \'ಗುರುತಿಸಿ\' ಕ್ಲಿಕ್ ಮಾಡಿ.</span>';
+  
+  modal.style.display = "flex";
+
+  try {
+    // Open rear camera on mobile devices
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
+    video.srcObject = videoStream;
+  } catch (err) {
+    alert("ಕ್ಯಾಮೆರಾ ತೆರೆಯಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ: " + err.message);
+    closeLiveCamera();
+  }
+}
+
+function closeLiveCamera() {
+  if (videoStream) {
+    videoStream.getTracks().forEach(track => track.stop());
+    videoStream = null;
+  }
+  document.getElementById("cameraModal").style.display = "none";
+}
+
+async function detectWordsFromStream() {
+  const video = document.getElementById("liveVideo");
+  const canvas = document.getElementById("captureCanvas");
+  const chipsContainer = document.getElementById("wordChipsContainer");
+  const detectBtn = document.getElementById("detectBtn");
+
+  if (!video.videoWidth) return;
+
+  // Capture current frame from video feed
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+  const base64Data = canvas.toDataURL("image/jpeg", 0.8).split(",")[1];
+
+  detectBtn.disabled = true;
+  detectBtn.innerText = "ಗುರುತಿಸಲಾಗುತ್ತಿದೆ...";
+  chipsContainer.innerHTML = '<span style="font-size:0.85rem; color:#6b7280;">ಪದಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...</span>';
+
+  try {
+    const response = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image: base64Data,
+        mimeType: "image/jpeg",
+        language: currentLang
+      })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+
+    const words = (data.words || []).filter(w => w.trim().length > 1);
+
+    if (words.length === 0) {
+      chipsContainer.innerHTML = '<span style="color:#ef4444; font-size:0.85rem;">ಯಾವುದೇ ಸ್ಪಷ್ಟ ಪದ ಕಂಡುಬಂದಿಲ್ಲ. ಕ್ಯಾಮೆರಾವನ್ನು ಹತ್ತಿರ ಹಿಡಿದು ಪುನಃ ಪ್ರಯತ್ನಿಸಿ.</span>';
+      return;
+    }
+
+    chipsContainer.innerHTML = "";
+    words.forEach(word => {
+      const chip = document.createElement("button");
+      chip.innerText = word;
+      chip.style.cssText = "background:#f3f4f6; border:1px solid #d1d5db; padding:6px 12px; border-radius:20px; font-size:0.95rem; cursor:pointer; font-weight:500;";
+      chip.onclick = () => {
+        document.getElementById("wordInput").value = word;
+        closeLiveCamera();
+      };
+      chipsContainer.appendChild(chip);
+    });
+
+  } catch (err) {
+    chipsContainer.innerHTML = `<span style="color:#ef4444; font-size:0.85rem;">ದೋಷ: ${err.message}</span>`;
+  } finally {
+    detectBtn.disabled = false;
+    detectBtn.innerText = "🔍 ಪದಗಳನ್ನು ಗುರುತಿಸಿ (Detect Words)";
+  }
+}
+
+    const langLabels = {
+      kannada: {
+        title: "ಕನ್ನಡ ವ್ಯಾಕರಣ ಪರಿಹಾರಕ",
+        sandhi: "ಸಂಧಿ (Sandhi)",
+        sandhiDesc: "ಕನ್ನಡ & ಸಂಸ್ಕೃತ ಸಂಧಿಗಳು",
+        samasa: "ಸಮಾಸ (Samasa)",
+        samasaDesc: "ವಿಗ್ರಹ ವಾಕ್ಯ & ಸಮಾಸ",
+        inputPlaceholder: "ಉದಾ: ದೇವಾಲಯ, ಮಳೆಗಾಲ...",
+        inputLabel: "ಪದವನ್ನು ನಮೂದಿಸಿ:",
+        solveBtn: "ವಿಶ್ಲೇಷಿಸಿ (Solve)",
+        classLabelSandhi: "ಸಂಧಿಯ ಹೆಸರು",
+        breakupLabelSandhi: "ಸಂಧಿ ವಿಭಾಗ (ಪೂರ್ವಪದ + ಉತ್ತರಪದ)",
+        classLabelSamasa: "ಸಮಾಸದ ಹೆಸರು",
+        breakupLabelSamasa: "ವಿಗ್ರಹ ವಾಕ್ಯ"
+      },
+      hindi: {
+        title: "हिन्दी व्याकरण समाधान",
+        sandhi: "संधि (Sandhi)",
+        sandhiDesc: "स्वर, व्यंजन व विसर्ग संधि",
+        samasa: "समास (Samasa)",
+        samasaDesc: "विग्रह एवं भेद",
+        inputPlaceholder: "उदा: विद्यालय, सूर्योदय, राजपुत्र...",
+        inputLabel: "शब्द दर्ज करें:",
+        solveBtn: "समाधान करें (Solve)",
+        classLabelSandhi: "संधि का नाम",
+        breakupLabelSandhi: "संधि विच्छेद",
+        classLabelSamasa: "समास का नाम",
+        breakupLabelSamasa: "समास विग्रह"
+      },
+      sanskrit: {
+        title: "संस्कृत व्याकरण परिहारकः",
+        sandhi: "सन्धिः (Sandhi)",
+        sandhiDesc: "अच्, हल् एवं विसर्गसन्धिः",
+        samasa: "समासः (Samasa)",
+        samasaDesc: "विग्रहवाक्यम् एवं भेदः",
+        inputPlaceholder: "उदा: हिमालयः, महर्षिः, पीताम्बरः...",
+        inputLabel: "पदं लिखन्तु:",
+        solveBtn: "विश्लेषणं कुरुत (Solve)",
+        classLabelSandhi: "सन्धेः नाम",
+        breakupLabelSandhi: "सन्धिविच्छेदः",
+        classLabelSamasa: "समासस्य नाम",
+        breakupLabelSamasa: "विग्रहवाक्यम्"
+      }
+    };
+
+    function showView(viewId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+    }
+
+    function selectLanguage(lang) {
+      currentLang = lang;
+      const conf = langLabels[lang];
+      document.getElementById("btnSandhiText").innerText = conf.sandhi;
+      document.getElementById("btnSandhiDesc").innerText = conf.sandhiDesc;
+      document.getElementById("btnSamasaText").innerText = conf.samasa;
+      document.getElementById("btnSamasaDesc").innerText = conf.samasaDesc;
+      showView('modeView');
+    }
+
+    function selectMode(mode) {
+      currentMode = mode;
+      const conf = langLabels[currentLang];
+      document.getElementById("solverTitle").innerText = mode === 'sandhi' ? conf.sandhi : conf.samasa;
+      document.getElementById("inputLabel").innerText = conf.inputLabel;
+      document.getElementById("wordInput").placeholder = conf.inputPlaceholder;
+      document.getElementById("wordInput").value = "";
+      document.getElementById("solveBtn").innerText = conf.solveBtn;
+      document.getElementById("resultBox").style.display = "none";
+
+      if (mode === 'sandhi') {
+        document.getElementById("resClassificationLabel").innerText = conf.classLabelSandhi;
+        document.getElementById("resBreakupLabel").innerText = conf.breakupLabelSandhi;
+      } else {
+        document.getElementById("resClassificationLabel").innerText = conf.classLabelSamasa;
+        document.getElementById("resBreakupLabel").innerText = conf.breakupLabelSamasa;
+      }
+
+      loadSuggestions();
+      showView('solverView');
+    }
+
+    function getStorageKey() {
+      return `vyakarana_saved_${currentLang}`;
+    }
+
+    function getCustomWords() {
+      try {
+        return JSON.parse(localStorage.getItem(getStorageKey())) || {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveWordLocally(word, entry) {
+      const customWords = getCustomWords();
+      customWords[word] = Object.assign({}, customWords[word] || {}, entry);
+      localStorage.setItem(getStorageKey(), JSON.stringify(customWords));
+      
+      if (typeof offlineDatabase !== "undefined" && offlineDatabase[currentLang]) {
+        offlineDatabase[currentLang][word] = customWords[word];
+      }
+    }
+
+    function loadSuggestions() {
+      const datalist = document.getElementById("wordSuggestions");
+      datalist.innerHTML = "";
+      const baseWords = (typeof offlineDatabase !== "undefined" && offlineDatabase[currentLang]) ? Object.keys(offlineDatabase[currentLang]) : [];
+      const savedWords = Object.keys(getCustomWords());
+      const allWords = Array.from(new Set([...baseWords, ...savedWords]));
+      
+      allWords.forEach(w => {
+        const opt = document.createElement("option");
+        opt.value = w;
+        datalist.appendChild(opt);
+      });
+    }
+
+    async function executeSolver() {
+      const word = document.getElementById("wordInput").value.trim();
+      const btn = document.getElementById("solveBtn");
+
+      if (!word) {
+        alert("Please enter a word.");
+        return;
+      }
+
+      // Check offline local memory
+      const customWords = getCustomWords();
+      const localEntry = (customWords && customWords[word]) || (offlineDatabase && offlineDatabase[currentLang] && offlineDatabase[currentLang][word]);
+      
+      if (localEntry && localEntry.classification && localEntry.breakup) {
+        renderOutput(word, localEntry, true);
+        return;
+      }
+
+      // Online fallback
+      btn.disabled = true;
+      btn.innerText = "...";
+
+      try {
+        const res = await fetch(BACKEND_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ word: word, mode: currentMode, language: currentLang })
+        });
+
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message || data.error);
+
+        let text = data.candidates[0].content.parts[0].text.trim();
+        text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        const parsed = JSON.parse(text);
+
+        const entry = {
+          classification: parsed.classification,
+          breakup: parsed.breakup,
+          rule: parsed.rule
+        };
+
+        saveWordLocally(word, entry);
+        renderOutput(word, entry, false);
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = langLabels[currentLang].solveBtn;
+      }
+    }
+
+    function renderOutput(word, data, isOffline) {
+      document.getElementById("resWord").innerText = word;
+      document.getElementById("resClassification").innerText = data.classification || "-";
+      document.getElementById("resBreakup").innerText = data.breakup || "-";
+      document.getElementById("resRule").innerText = data.rule || "-";
+
+      const badge = document.getElementById("sourceBadge");
+      if (isOffline) {
+        badge.innerText = "Offline (ಆಫ್‌ಲೈನ್)";
+        badge.className = "badge badge-offline";
+      } else {
+        badge.innerText = "Online AI";
+        badge.className = "badge badge-online";
+      }
+
+      document.getElementById("resultBox").style.display = "block";
+    }
+  </script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => console.log('Service Worker registered successfully'))
+        .catch((err) => console.error('Service Worker registration failed:', err));
+    });
+  }
+</script>
+  <!-- Live Camera Viewfinder Modal -->
+<div id="cameraModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;">
+  
+  <div style="width:100%; max-width:480px; background:#fff; border-radius:14px; overflow:hidden; display:flex; flex-direction:column; max-height:90vh;">
+    <!-- Modal Header -->
+    <div style="padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb;">
+      <h3 style="margin:0; font-size:1.05rem; color:#1f2937;">ಪುಸ್ತಕದ ಪದಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ (Select Word)</h3>
+      <button onclick="closeLiveCamera()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; line-height:1;">&times;</button>
+    </div>
+
+    <!-- Video Feed -->
+    <div style="position:relative; width:100%; height:260px; background:#000;">
+      <video id="liveVideo" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+      <canvas id="captureCanvas" style="display:none;"></canvas>
+    </div>
+
+    <!-- Action Bar -->
+    <div style="padding:10px 16px; text-align:center; background:#f9fafb; border-bottom:1px solid #e5e7eb;">
+      <button id="detectBtn" onclick="detectWordsFromStream()" style="background:var(--primary); color:white; border:none; padding:8px 18px; border-radius:8px; font-weight:bold; cursor:pointer;">
+        🔍 ಪದಗಳನ್ನು ಗುರುತಿಸಿ (Detect Words)
+      </button>
+    </div>
+
+    <!-- Detected Word Badges -->
+    <div style="padding:14px; overflow-y:auto; flex:1;">
+      <p style="margin:0 0 8px 0; font-size:0.85rem; color:#6b7280;">ಪದವನ್ನು ಸ್ಪರ್ಶಿಸಿ (Tap a word to paste into search):</p>
+      <div id="wordChipsContainer" style="display:flex; flex-wrap:wrap; gap:8px;">
+        <span style="font-size:0.85rem; color:#9ca3af;">ಕ್ಯಾಮೆರಾವನ್ನು ಪುಸ್ತಕದತ್ತ ಹಿಡಿದು 'ಗುರುತಿಸಿ' ಕ್ಲಿಕ್ ಮಾಡಿ.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
