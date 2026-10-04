@@ -264,15 +264,31 @@
       <div class="card">
         <h2 id="solverTitle" style="margin-top:0; color:var(--primary); font-size: 1.3rem;"></h2>
         <label for="wordInput" id="inputLabel">ಪದವನ್ನು ನಮೂದಿಸಿ:</label>
-         <!-- Input with Camera Scan Button -->
-   	<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-      <input type="text" id="wordInput" list="wordSuggestions" placeholder="..." style="margin-bottom: 0; flex: 1;" />
-      
-      <!-- Camera Button -->
-      <button type="button" onclick="openLiveCamera()" title="Scan the word" style="background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 14px; font-size: 1.3rem; cursor: pointer;">
-        📷
-      </button>
-    </div>
+
+        <!-- INPUT + CAMERA BUTTON WRAPPER -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: stretch;">
+          <input 
+            type="text" 
+            id="wordInput" 
+            list="wordSuggestions" 
+            placeholder="..." 
+            style="margin-bottom: 0; flex: 1; min-width: 0;" 
+          />
+          <button 
+            type="button" 
+            id="cameraBtn" 
+            onclick="openLiveCamera()" 
+            title="ಕ್ಯಾಮೆರಾದಿಂದ ಪದ ಗುರುತಿಸಿ" 
+            style="background: #ffffff; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 16px; font-size: 1.4rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08);"
+          >
+            📷
+          </button>
+        </div>
+
+        <datalist id="wordSuggestions"></datalist>
+
+        <button id="solveBtn" class="action-btn" onclick="executeSolver()">ವಿಶ್ಲೇಷಿಸಿ (Solve)</button>
+      </div>
 
         <datalist id="wordSuggestions"></datalist>
 
