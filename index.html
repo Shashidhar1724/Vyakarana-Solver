@@ -315,6 +315,97 @@
     let currentMode = 'sandhi';
     const BACKEND_URL = "https://language-backend.shashidhar1724.workers.dev";
 
+    let videoStream = null;
+
+async function openLiveCamera() {
+  const modal = document.getElementById("cameraModal");
+  const video = document.getElementById("liveVideo");
+  document.getElementById("wordChipsContainer").innerHTML = '<span style="font-size:0.85rem; color:#9ca3af;">ಕ್ಯಾಮೆರಾವನ್ನು ಪುಸ್ತಕದತ್ತ ಹಿಡಿದು \'ಗುರುತಿಸಿ\' ಕ್ಲಿಕ್ ಮಾಡಿ.</span>';
+  
+  modal.style.display = "flex";
+
+  try {
+    // Open rear camera on mobile devices
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
+    video.srcObject = videoStream;
+  } catch (err) {
+    alert("ಕ್ಯಾಮೆರಾ ತೆರೆಯಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ: " + err.message);
+    closeLiveCamera();
+  }
+}
+
+function closeLiveCamera() {
+  if (videoStream) {
+    videoStream.getTracks().forEach(track => track.stop());
+    videoStream = null;
+  }
+  document.getElementById("cameraModal").style.display = "none";
+}
+
+async function detectWordsFromStream() {
+  const video = document.getElementById("liveVideo");
+  const canvas = document.getElementById("captureCanvas");
+  const chipsContainer = document.getElementById("wordChipsContainer");
+  const detectBtn = document.getElementById("detectBtn");
+
+  if (!video.videoWidth) return;
+
+  // Capture current frame from video feed
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+  const base64Data = canvas.toDataURL("image/jpeg", 0.8).split(",")[1];
+
+  detectBtn.disabled = true;
+  detectBtn.innerText = "ಗುರುತಿಸಲಾಗುತ್ತಿದೆ...";
+  chipsContainer.innerHTML = '<span style="font-size:0.85rem; color:#6b7280;">ಪದಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...</span>';
+
+  try {
+    const response = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image: base64Data,
+        mimeType: "image/jpeg",
+        language: currentLang
+      })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+
+    const words = (data.words || []).filter(w => w.trim().length > 1);
+
+    if (words.length === 0) {
+      chipsContainer.innerHTML = '<span style="color:#ef4444; font-size:0.85rem;">ಯಾವುದೇ ಸ್ಪಷ್ಟ ಪದ ಕಂಡುಬಂದಿಲ್ಲ. ಕ್ಯಾಮೆರಾವನ್ನು ಹತ್ತಿರ ಹಿಡಿದು ಪುನಃ ಪ್ರಯತ್ನಿಸಿ.</span>';
+      return;
+    }
+
+    chipsContainer.innerHTML = "";
+    words.forEach(word => {
+      const chip = document.createElement("button");
+      chip.innerText = word;
+      chip.style.cssText = "background:#f3f4f6; border:1px solid #d1d5db; padding:6px 12px; border-radius:20px; font-size:0.95rem; cursor:pointer; font-weight:500;";
+      chip.onclick = () => {
+        document.getElementById("wordInput").value = word;
+        closeLiveCamera();
+      };
+      chipsContainer.appendChild(chip);
+    });
+
+  } catch (err) {
+    chipsContainer.innerHTML = `<span style="color:#ef4444; font-size:0.85rem;">ದೋಷ: ${err.message}</span>`;
+  } finally {
+    detectBtn.disabled = false;
+    detectBtn.innerText = "🔍 ಪದಗಳನ್ನು ಗುರುತಿಸಿ (Detect Words)";
+  }
+}
+
     const langLabels = {
       kannada: {
         title: "ಕನ್ನಡ ವ್ಯಾಕರಣ ಪರಿಹಾರಕ",
