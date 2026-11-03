@@ -577,8 +577,31 @@
         if (data.error) throw new Error(data.error.message || data.error);
 
         let text = data.candidates[0].content.parts[0].text.trim();
-        text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-        const parsed = JSON.parse(text);
+        text = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/g, "").trim();
+
+        let parsed;
+        try {
+          parsed = JSON.parse(text);
+        } catch (err1) {
+          try {
+            parsed = JSON.parse(text.replace(/[\r\n]+/g, " "));
+          } catch (err2) {
+            const extract = (k) => {
+              const m = text.match(new RegExp(`"${k}"\\s*:\\s*"([^"]+)"`, "i"));
+              return m ? m[1] : "";
+            };
+            const ruleMatch = text.match(/"rule"\s*:\s*"([\s\S]*?)(?:"\s*\}|"$)/i);
+            parsed = {
+              classification: extract("classification"),
+              breakup: extract("breakup"),
+              rule: ruleMatch ? ruleMatch[1].replace(/"/g, "'").trim() : ""
+            };
+          }
+        }
+
+        if (!parsed || !parsed.classification) {
+          throw new Error("ಪದದ ವಿಶ್ಲೇಷಣೆ ಅಸಾಧ್ಯವಾಯಿತು. ದಯವಿಟ್ಟು ಮತ್ತೊಮ್ಮೆ ಪ್ರಯತ್ನಿಸಿ.");
+        }
 
         const entry = {
           classification: parsed.classification,
