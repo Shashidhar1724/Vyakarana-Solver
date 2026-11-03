@@ -670,12 +670,27 @@
 
       if (!video || !video.videoWidth) return;
 
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // Scale down image to avoid payload size errors
+      const maxDim = 800;
+      let width = video.videoWidth;
+      let height = video.videoHeight;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext("2d");
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      const base64Data = canvas.toDataURL("image/jpeg", 0.8).split(",")[1];
+      ctx.drawImage(video, 0, 0, width, height);
+
+      // Low quality 0.6 JPEG reduces base64 size significantly
+      const base64Data = canvas.toDataURL("image/jpeg", 0.6).split(",")[1];
 
       if (detectBtn) {
         detectBtn.disabled = true;
@@ -696,10 +711,17 @@
           })
         });
 
+        // Safely check content type before parsing JSON
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          const rawErr = await response.text();
+          throw new Error("Server returned non-JSON response. Check Cloudflare Worker logs.");
+        }
+
         const data = await response.json();
         if (data.error) throw new Error(data.error);
 
-        const words = (data.words || []).filter(w => w.trim().length > 1);
+        const words = (data.words || []).filter(w => typeof w === "string" && w.trim().length > 1);
 
         if (!chipsContainer) return;
 
