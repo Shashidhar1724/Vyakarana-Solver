@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vyakarana-cache-v10';
+const CACHE_NAME = 'vyakarana-cache-v11';
 
 // Core assets to cache for offline access
 const ASSETS_TO_CACHE = [
